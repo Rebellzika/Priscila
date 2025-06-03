@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor Financeiro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Estilos customizados mínimos, se necessário */
+        body {
+            font-family: 'Inter', sans-serif; /* Tailwind usa Inter por padrão, mas é bom garantir */
+        }
+        .modal {
+            display: none; /* Controlado por JS */
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            padding: 1rem;
+        }
+        .modal-content {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 500px; /* ou md */
+            transform: scale(0.95);
+            opacity: 0;
+            transition: transform 0.2s ease-out, opacity 0.2s ease-out;
+        }
+        .modal.open .modal-content {
+            transform: scale(1);
+            opacity: 1;
+        }
+        .dark .modal-content {
+            background-color: #1f2937; /* gray-800 */
+        }
+        .notification {
+            position: fixed;
+            top: 1.25rem; /* 20px */
+            right: 1.25rem; /* 20px */
+            padding: 1rem;
+            border-radius: 0.375rem; /* rounded-md */
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            z-index: 100;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        .notification.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        .sidebar-item.active {
+            background-color: #3b82f6; /* blue-500 */
+            color: white;
+        }
+        .dark .sidebar-item.active {
+            background-color: #2563eb; /* blue-600 */
+        }
+        /* Para o spinner de loading */
+        .loader {
+            border: 4px solid #f3f3f3; /* Light grey */
+            border-top: 4px solid #3498db; /* Blue */
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200">
+
+    <!-- Tela de Loading Inicial -->
+    <div id="initial-loading-screen" class="fixed inset-0 bg-gradient-to-br from-slate-900 to-slate-700 flex flex-col items-center justify-center z-[200]">
+        <div class="loader"></div>
+        <p class="ml-4 text-xl text-white mt-4">Carregando aplicação...</p>
+    </div>
+
+    <!-- Container da Aplicação -->
+    <div id="app-container" class="hidden">
+        <!-- Tela de Autenticação -->
+        <div id="auth-screen" class="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-900 to-slate-700 p-4">
+            <div class="w-full max-w-md bg-white dark:bg-gray-800 shadow-2xl rounded-xl p-8">
+                <h1 id="app-title-auth" class="text-4xl font-bold text-center text-slate-700 dark:text-slate-200 mb-2">Gestor Financeiro</h1>
+                <p id="auth-subtitle" class="text-center text-gray-600 dark:text-gray-400 mb-8">Acesse sua conta</p>
+                <form id="auth-form" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
+                        <input type="email" id="email" required class="mt-1 block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white" placeholder="seu@email.com">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Senha</label>
+                        <input type="password" id="password" required class="mt-1 block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white" placeholder="********">
+                    </div>
+                    <p id="auth-error" class="text-red-500 text-sm text-center hidden"></p>
+                    <button type="submit" id="auth-button" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 transition-colors">
+                        Entrar
+                    </button>
+                </form>
+                <p class="mt-8 text-center text-sm text-gray-600 dark:text-gray-400">
+                    <span id="auth-toggle-text">Não tem uma conta?</span>
+                    <button id="auth-toggle-button" class="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 dark:hover:text-blue-300 ml-1">
+                        Registre-se
+                    </button>
+                </p>
+            </div>
+            <footer class="mt-8 text-center text-xs text-gray-400 dark:text-gray-500">
+                <p>&copy; <span id="current-year"></span> Gestor Financeiro. Todos os direitos reservados.</p>
+                <p>App ID: <span id="app-id-display-auth"></span></p>
+            </footer>
+        </div>
+
+        <!-- Dashboard -->
+        <div id="dashboard-screen" class="hidden flex h-screen">
+            <!-- Sidebar -->
+            <aside class="w-64 bg-white dark:bg-gray-800 p-6 shadow-lg flex flex-col justify-between">
+                <div>
+                    <h2 id="app-title-dashboard" class="text-2xl font-bold text-blue-600 dark:text-blue-400 mb-8">Gestor Financeiro</h2>
+                    <nav id="sidebar-nav" class="space-y-2">
+                        <!-- Itens de navegação serão inseridos aqui por JS -->
+                    </nav>
+                    <div class="mt-8">
+                        <h3 class="text-xs uppercase text-gray-500 dark:text-gray-400 font-semibold mb-2">Contexto</h3>
+                        <div class="space-y-2">
+                            <button data-context="all" class="filter-context-btn w-full text-left px-4 py-2 rounded-md text-sm hover:bg-gray-200 dark:hover:bg-gray-700">Todos</button>
+                            <button data-context="personal" class="filter-context-btn w-full text-left px-4 py-2 rounded-md text-sm hover:bg-gray-200 dark:hover:bg-gray-700">Pessoal</button>
+                            <button data-context="business" class="filter-context-btn w-full text-left px-4 py-2 rounded-md text-sm hover:bg-gray-200 dark:hover:bg-gray-700">Empresarial</button>
+                        </div>
+                    </div>
+                    <div class="mt-8">
+                        <button id="toggle-balances-btn" class="w-full flex items-center justify-center space-x-2 px-4 py-2 rounded-md text-sm bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600">
+                            <!-- Ícone e texto serão inseridos por JS -->
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Logado como:</p>
+                    <p id="user-email-display" class="text-sm font-medium truncate mb-2" title=""></p>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">User ID:</p>
+                    <p id="user-id-display" class="text-xs font-mono break-all mb-4" title=""></p>
+                     <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">App ID:</p>
+                    <p id="app-id-display-dashboard" class="text-xs font-mono break-all mb-4"></p>
+                    <button id="logout-button" class="w-full flex items-center justify-center space-x-2 px-4 py-3 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors">
+                        <!-- Ícone LogOut -->
+                        <svg class="w-5 h-5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+                        <span>Sair</span>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Conteúdo Principal -->
+            <main id="main-content" class="flex-1 p-8 overflow-y-auto">
+                <!-- Conteúdo da view será inserido aqui -->
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal Genérico -->
+    <div id="modal-generic" class="modal">
+        <div class="modal-content">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="modal-title" class="text-xl font-semibold text-gray-800 dark:text-gray-100"></h3>
+                <button id="modal-close-button" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors text-2xl leading-none">&times;</button>
+            </div>
+            <div id="modal-body">
+                <!-- Conteúdo do formulário ou mensagem de confirmação -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Template para formulário de Conta -->
+    <template id="account-form-template">
+        <form class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome da Conta</label>
+                <input type="text" name="name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-white" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tipo</label>
+                <select name="type" class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-white">
+                    <option value="personal">Pessoal</option>
+                    <option value="business">Empresarial</option>
+                </select>
+            </div>
+            <div class="flex justify-end space-x-3 pt-4">
+                <button type="button" class="modal-cancel-btn px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 rounded-md shadow-sm transition-colors">Cancelar</button>
+                <button type="submit" class="modal-save-btn px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm transition-colors">Salvar</button>
+            </div>
+        </form>
+    </template>
+
+    <!-- Template para formulário de Categoria -->
+    <template id="category-form-template">
+        <form class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Nome da Categoria</label>
+                <input type="text" name="name" required class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-white" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tipo de Categoria</label>
+                <select name="type" class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-white">
+                    <option value="expense">Despesa</option>
+                    <option value="income">Receita</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Contexto</label>
+                <select name="context" class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-white">
+                    <option value="personal">Pessoal</option>
+                    <option value="business">Empresarial</option>
+                </select>
+            </div>
+            <div class="flex justify-end space-x-3 pt-4">
+                <button type="button" class="modal-cancel-btn px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 rounded-md shadow-sm transition-colors">Cancelar</button>
+                <button type="submit" class="modal-save-btn px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm transition-colors">Salvar</button>
+            </div>
+        </form>
+    </template>
+
+    <!-- Template para formulário de Transação -->
+    <template id="transaction-form-template">
+        <form class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Tipo de Transação</label>
+                <select name="type" class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-white">
+                    <option value="expense">Despesa</option>
+                    <option value="income">Receita</option>
+                    <option value="transfer">Transferência</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Descrição</label>
+                <input type="text" name="description" required class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-white" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Valor</label>
+                <input type="number" name="amount" step="0.01" required class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-white" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Data</label>
+                <input type="date" name="date" required class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-white" />
+            </div>
+            <div class="transaction-account-section">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Conta</label>
+                <select name="accountId" class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-white">
+                    <option value="">Selecione uma conta</option>
+                </select>
+            </div>
+            <div class="transaction-category-section">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Categoria (Opcional)</label>
+                <select name="categoryId" class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-white">
+                    <option value="">Selecione uma categoria</option>
+                </select>
+            </div>
+            <div class="transaction-transfer-section hidden space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Conta de Origem</label>
+                    <select name="fromAccountId" class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-white">
+                        <option value="">Selecione a conta de origem</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Conta de Destino</label>
+                    <select name="toAccountId" class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-700 dark:text-white">
+                        <option value="">Selecione a conta de destino</option>
+                    </select>
+                </div>
+            </div>
+            <div class="flex justify-end space-x-3 pt-4">
+                <button type="button" class="modal-cancel-btn px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 rounded-md shadow-sm transition-colors">Cancelar</button>
+                <button type="submit" class="modal-save-btn px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm transition-colors">Salvar</button>
+            </div>
+        </form>
+    </template>
+
+    <!-- Template para Modal de Confirmação -->
+    <template id="confirmation-modal-template">
+        <div>
+            <p id="confirmation-message" class="my-4 text-gray-700 dark:text-gray-300"></p>
+            <div class="flex justify-end space-x-3 mt-6">
+                <button type="button" class="modal-cancel-btn px-4 py-2 rounded-lg bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors">Cancelar</button>
+                <button type="button" class="modal-confirm-btn px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white transition-colors">Confirmar</button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Container para Notificações -->
+    <div id="notification-container"></div>
+
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        // Importações do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js"; // Adicionado Analytics
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            signOut, 
+            onAuthStateChanged,
+            signInAnonymously,
+            signInWithCustomToken
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            addDoc, 
+            getDocs, 
+            doc, 
+            updateDoc, 
+            deleteDoc, 
+            query, 
+            where, 
+            onSnapshot,
+            Timestamp,
+            writeBatch,
+            setDoc,
+            getDoc
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+
+        // --- Configuração do Firebase (FORNECIDA PELO USUÁRIO) ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyDilLVHv1d6iv_ClNwPtL14IZ9G64Gf9Ks",
+            authDomain: "financeirogg-8fd82.firebaseapp.com",
+            projectId: "financeirogg-8fd82",
+            storageBucket: "financeirogg-8fd82.appspot.com", 
+            messagingSenderId: "208882420194",
+            appId: "1:208882420194:web:dcc04f35a8f9418c5711bb",
+            measurementId: "G-S20XXLWPX7"
+        };
+
+        // --- Inicialização do Firebase ---
+        const fbApp = initializeApp(firebaseConfig);
+        const fbAuth = getAuth(fbApp);
+        const fbDb = getFirestore(fbApp);
+        const fbAnalytics = getAnalytics(fbApp); 
+        setLogLevel('debug');
+
+        // --- Constantes e Variáveis Globais de Estado ---
+        const APP_NAME_CONST = "Gestor Financeiro";
+        const globalAppId = firebaseConfig.appId; 
+        
+        let currentUser = null;
+        let currentUserId = null;
+        let accounts = [];
+        let categories = [];
+        let transactions = [];
+        let currentView = 'overview'; 
+        let currentModal = { type: null, mode: null, data: null, callback: null };
+        let filterContext = 'all'; 
+        let showBalances = true;
+
+        let unsubscribes = []; 
+
+        // --- Elementos do DOM ---
+        const initialLoadingScreen = document.getElementById('initial-loading-screen');
+        const appContainer = document.getElementById('app-container');
+        const authScreen = document.getElementById('auth-screen');
+        const dashboardScreen = document.getElementById('dashboard-screen');
+        const authForm = document.getElementById('auth-form');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const authButton = document.getElementById('auth-button');
+        const authError = document.getElementById('auth-error');
+        const authToggleText = document.getElementById('auth-toggle-text');
+        const authToggleButton = document.getElementById('auth-toggle-button');
+        const authSubtitle = document.getElementById('auth-subtitle');
+
+        const mainContent = document.getElementById('main-content');
+        const sidebarNav = document.getElementById('sidebar-nav');
+        const userEmailDisplay = document.getElementById('user-email-display');
+        const userIdDisplay = document.getElementById('user-id-display');
+        const appIdDisplayAuth = document.getElementById('app-id-display-auth');
+        const appIdDisplayDashboard = document.getElementById('app-id-display-dashboard');
+        const logoutButton = document.getElementById('logout-button');
+        const currentYearSpan = document.getElementById('current-year');
+
+        const modalGeneric = document.getElementById('modal-generic');
+        const modalTitle = document.getElementById('modal-title');
+        const modalBody = document.getElementById('modal-body');
+        const modalCloseButton = document.getElementById('modal-close-button');
+        
+        const toggleBalancesBtn = document.getElementById('toggle-balances-btn');
+
+        // --- Ícones SVG ---
+        const ICONS = {
+            Home: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>',
+            Archive: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>',
+            List: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>',
+            Briefcase: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>',
+            PlusCircle: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
+            Edit: '<svg class="w-5 h-5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>',
+            Trash2: '<svg class="w-5 h-5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>',
+            Eye: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>',
+            EyeOff: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.05 10.05 0 01-4.125 5.175m0 0l3.59 3.59M21 21L17.41 17.41"></path></svg>',
+        };
+
+        // --- Funções Auxiliares ---
+        const showNotification = (message, type = 'success') => {
+            const notificationContainer = document.getElementById('notification-container');
+            const notificationId = 'notif-' + Date.now();
+            const notificationDiv = document.createElement('div');
+            notificationDiv.id = notificationId;
+            notificationDiv.className = `notification ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} text-white`;
+            notificationDiv.textContent = message;
+            
+            const closeBtn = document.createElement('button');
+            closeBtn.innerHTML = '&times;';
+            closeBtn.className = 'ml-4 font-bold text-lg leading-none';
+            closeBtn.onclick = () => {
+                notificationDiv.classList.remove('show');
+                setTimeout(() => notificationDiv.remove(), 300);
+            };
+            notificationDiv.appendChild(closeBtn);
+
+            notificationContainer.appendChild(notificationDiv);
+
+            void notificationDiv.offsetWidth; 
+            notificationDiv.classList.add('show');
+
+            setTimeout(() => {
+                notificationDiv.classList.remove('show');
+                setTimeout(() => notificationDiv.remove(), 300);
+            }, 3000);
+        };
+
+        const formatCurrency = (value) => {
+            if (!showBalances) return "R$ •••";
+            if (typeof value !== 'number') value = parseFloat(value || 0);
+            return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        };
+
+        const formatDate = (timestamp) => {
+            if (!timestamp || !timestamp.toDate) return 'N/A';
+            return timestamp.toDate().toLocaleDateString('pt-BR');
+        };
+        
+        const getFirebaseTimestamp = (dateString) => {
+            return Timestamp.fromDate(new Date(dateString + "T00:00:00"));
+        };
+
+        const dateToInputFormat = (timestamp) => {
+            if (!timestamp || !timestamp.toDate) return new Date().toISOString().split('T')[0];
+            return timestamp.toDate().toISOString().split('T')[0];
+        };
+
+        // --- Lógica de Autenticação ---
+        let isLoginMode = true;
+
+        const updateAuthUI = () => {
+            if (isLoginMode) {
+                authSubtitle.textContent = 'Acesse sua conta';
+                authButton.textContent = 'Entrar';
+                authToggleText.textContent = 'Não tem uma conta?';
+                authToggleButton.textContent = 'Registre-se';
+            } else {
+                authSubtitle.textContent = 'Crie uma nova conta';
+                authButton.textContent = 'Registrar';
+                authToggleText.textContent = 'Já tem uma conta?';
+                authToggleButton.textContent = 'Faça login';
+            }
+            authError.textContent = '';
+            authError.classList.add('hidden');
+        };
+
+        authToggleButton.addEventListener('click', () => {
+            isLoginMode = !isLoginMode;
+            updateAuthUI();
+        });
+
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            authButton.disabled = true;
+            authButton.textContent = isLoginMode ? 'Entrando...' : 'Registrando...';
+            authError.classList.add('hidden');
+
+            const email = emailInput.value;
+            const password = passwordInput.value;
+
+            try {
+                if (isLoginMode) {
+                    await signInWithEmailAndPassword(fbAuth, email, password);
+                    showNotification('Login bem-sucedido!', 'success');
+                } else {
+                    await createUserWithEmailAndPassword(fbAuth, email, password);
+                    showNotification('Cadastro bem-sucedido! Faça o login.', 'success');
+                    isLoginMode = true; 
+                    updateAuthUI();
+                }
+            } catch (err) {
+                console.error("Erro de autenticação:", err);
+                authError.textContent = err.message || 'Ocorreu um erro.';
+                authError.classList.remove('hidden');
+                showNotification(err.message || 'Ocorreu um erro.', 'error');
+            } finally {
+                authButton.disabled = false;
+                updateAuthUI(); 
+            }
+        });
+
+        logoutButton.addEventListener('click', async () => {
+            try {
+                await signOut(fbAuth);
+                showNotification('Logout bem-sucedido!', 'success');
+            } catch (error) {
+                console.error("Erro ao fazer logout: ", error);
+                showNotification('Erro ao fazer logout.', 'error');
+            }
+        });
+        
+        // --- Gerenciamento de Views ---
+        const navigateTo = (viewName) => {
+            currentView = viewName;
+            renderCurrentView();
+            updateSidebarActiveState();
+        };
+
+        const updateSidebarActiveState = () => {
+            document.querySelectorAll('.sidebar-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.view === currentView) {
+                    item.classList.add('active');
+                }
+            });
+        };
+        
+        const updateFilterContextButtons = () => {
+            document.querySelectorAll('.filter-context-btn').forEach(btn => {
+                if (btn.dataset.context === filterContext) {
+                    btn.classList.add('bg-gray-300', 'dark:bg-gray-700');
+                } else {
+                    btn.classList.remove('bg-gray-300', 'dark:bg-gray-700');
+                }
+            });
+        };
+
+        // --- Renderização ---
+        const renderSidebar = () => {
+            const navItems = [
+                { view: 'overview', label: 'Visão Geral', icon: ICONS.Home },
+                { view: 'accounts', label: 'Contas', icon: ICONS.Archive },
+                { view: 'transactions', label: 'Transações', icon: ICONS.List },
+                { view: 'categories', label: 'Categorias', icon: ICONS.Briefcase },
+            ];
+            sidebarNav.innerHTML = navItems.map(item => `
+                <button data-view="${item.view}" class="sidebar-item w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors hover:bg-gray-200 dark:hover:bg-gray-700">
+                    ${item.icon}
+                    <span>${item.label}</span>
+                </button>
+            `).join('');
+
+            document.querySelectorAll('.sidebar-item').forEach(button => {
+                button.addEventListener('click', () => navigateTo(button.dataset.view));
+            });
+            updateSidebarActiveState();
+        };
+        
+        const renderToggleBalancesButton = () => {
+            toggleBalancesBtn.innerHTML = `
+                ${showBalances ? ICONS.EyeOff : ICONS.Eye}
+                <span>${showBalances ? "Ocultar Saldos" : "Mostrar Saldos"}</span>
+            `;
+        };
+
+        // --- Lógica de Dados (Firestore) ---
+        const getCollectionPath = (collectionName) => {
+            if (!currentUserId) throw new Error("Usuário não autenticado.");
+            return `users/${currentUserId}/${collectionName}`;
+        };
+
+        const fetchData = (collectionName, setter, callback) => {
+            if (!currentUserId) return;
+            
+            const path = getCollectionPath(collectionName);
+            const q = query(collection(fbDb, path));
+
+            const unsubscribe = onSnapshot(q, (querySnapshot) => {
+                const items = [];
+                querySnapshot.forEach((doc) => {
+                    items.push({ id: doc.id, ...doc.data() });
+                });
+
+                if (collectionName === 'transactions') {
+                    items.sort((a, b) => (b.date?.toDate?.() || new Date(0)) - (a.date?.toDate?.() || new Date(0)));
+                } else if (collectionName === 'accounts' || collectionName === 'categories') {
+                    items.sort((a, b) => a.name.localeCompare(b.name));
+                }
+                
+                setter(items);
+                if (callback) callback();
+                renderCurrentView(); 
+            }, (error) => {
+                console.error(`Erro ao buscar ${collectionName}: `, error);
+                showNotification(`Erro ao buscar ${collectionName}: ${error.message}`, 'error');
+            });
+            unsubscribes.push(unsubscribe); 
+        };
+        
+        const cleanupFirestoreListeners = () => {
+            unsubscribes.forEach(unsub => unsub());
+            unsubscribes = [];
+        };
+
+        const calculateBalance = (accountId) => {
+            return transactions.reduce((balance, transaction) => {
+                const amount = parseFloat(transaction.amount || 0);
+                if (transaction.type === 'income' && transaction.accountId === accountId) {
+                    return balance + amount;
+                }
+                if (transaction.type === 'expense' && transaction.accountId === accountId) {
+                    return balance - amount;
+                }
+                if (transaction.type === 'transfer') {
+                    if (transaction.toAccountId === accountId) {
+                        return balance + amount;
+                    }
+                    if (transaction.fromAccountId === accountId) {
+                        return balance - amount;
+                    }
+                }
+                return balance;
+            }, 0);
+        };
+        
+        // --- Filtros ---
+        const getFilteredData = () => {
+            const filteredAcc = filterContext === 'all' ? accounts : accounts.filter(acc => acc.type === filterContext);
+            const filteredCat = filterContext === 'all' ? categories : categories.filter(cat => cat.context === filterContext);
+            const filteredTrans = filterContext === 'all' ? transactions : transactions.filter(trans => {
+                let transactionContext = 'personal'; 
+                const accountId = trans.accountId || trans.fromAccountId; 
+                const account = accounts.find(acc => acc.id === accountId);
+                if (account) {
+                    transactionContext = account.type;
+                }
+                return transactionContext === filterContext;
+            });
+            return { filteredAccounts: filteredAcc, filteredCategories: filteredCat, filteredTransactions: filteredTrans };
+        };
+
+
+        // --- Renderização das Views ---
+        const renderOverview = () => {
+            const { filteredAccounts: displayAccounts, filteredTransactions: displayTransactions } = getFilteredData();
+
+            const totalPersonal = accounts
+                .filter(acc => acc.type === 'personal')
+                .reduce((sum, acc) => sum + calculateBalance(acc.id), 0);
+            const totalBusiness = accounts
+                .filter(acc => acc.type === 'business')
+                .reduce((sum, acc) => sum + calculateBalance(acc.id), 0);
+            const totalOverall = totalPersonal + totalBusiness;
+
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            const incomeLast30Days = displayTransactions
+                .filter(t => t.type === 'income' && t.date && t.date.toDate() >= thirtyDaysAgo)
+                .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+
+            const expensesLast30Days = displayTransactions
+                .filter(t => t.type === 'expense' && t.date && t.date.toDate() >= thirtyDaysAgo)
+                .reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+
+            mainContent.innerHTML = `
+                <h1 class="text-3xl font-semibold mb-6">Visão Geral</h1>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+                        <h3 class="text-lg font-medium text-gray-500 dark:text-gray-400">Saldo Total (Geral)</h3>
+                        <p class="text-3xl font-bold ${totalOverall >= 0 ? 'text-green-500' : 'text-red-500'}">${formatCurrency(totalOverall)}</p>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+                        <h3 class="text-lg font-medium text-gray-500 dark:text-gray-400">Saldo Pessoal</h3>
+                        <p class="text-3xl font-bold ${totalPersonal >= 0 ? 'text-green-500' : 'text-red-500'}">${formatCurrency(totalPersonal)}</p>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+                        <h3 class="text-lg font-medium text-gray-500 dark:text-gray-400">Saldo Empresarial</h3>
+                        <p class="text-3xl font-bold ${totalBusiness >= 0 ? 'text-green-500' : 'text-red-500'}">${formatCurrency(totalBusiness)}</p>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+                        <h3 class="text-lg font-medium text-gray-500 dark:text-gray-400">Receitas (Últimos 30 dias)</h3>
+                        <p class="text-3xl font-bold text-green-500">${formatCurrency(incomeLast30Days)}</p>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+                        <h3 class="text-lg font-medium text-gray-500 dark:text-gray-400">Despesas (Últimos 30 dias)</h3>
+                        <p class="text-3xl font-bold text-red-500">${formatCurrency(expensesLast30Days)}</p>
+                    </div>
+                </div>
+                
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg">
+                    <h3 class="text-xl font-semibold mb-4">Resumo das Contas (${filterContext === 'all' ? 'Todas' : filterContext === 'personal' ? 'Pessoais' : 'Empresariais'})</h3>
+                    ${displayAccounts.length > 0 ? `
+                        <ul class="space-y-3">
+                            ${displayAccounts.map(acc => `
+                                <li class="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                                    <div>
+                                        <span class="font-medium">${acc.name}</span>
+                                        <span class="ml-2 text-xs px-2 py-0.5 rounded-full ${acc.type === 'personal' ? 'bg-blue-100 text-blue-700 dark:bg-blue-700 dark:text-blue-100' : 'bg-purple-100 text-purple-700 dark:bg-purple-700 dark:text-purple-100'}">
+                                            ${acc.type === 'personal' ? 'Pessoal' : 'Empresarial'}
+                                        </span>
+                                    </div>
+                                    <span class="font-semibold ${calculateBalance(acc.id) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
+                                        ${formatCurrency(calculateBalance(acc.id))}
+                                    </span>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    ` : '<p class="text-gray-500 dark:text-gray-400">Nenhuma conta para exibir neste contexto.</p>'}
+                </div>
+            `;
+        };
+
+        const renderAccounts = () => {
+            const { filteredAccounts: displayAccounts } = getFilteredData();
+            mainContent.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-3xl font-semibold">Contas</h1>
+                    <button id="add-account-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md flex items-center space-x-2 transition-colors">
+                        ${ICONS.PlusCircle}
+                        <span>Adicionar Conta</span>
+                    </button>
+                </div>
+                ${displayAccounts.length === 0 ? '<p class="text-gray-500 dark:text-gray-400">Nenhuma conta cadastrada.</p>' : `
+                    <div class="bg-white dark:bg-gray-800 shadow-xl rounded-lg overflow-hidden">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nome</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tipo</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Saldo</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                ${displayAccounts.map(acc => `
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${acc.name}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${acc.type === 'personal' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'}">
+                                                ${acc.type === 'personal' ? 'Pessoal' : 'Empresarial'}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold ${calculateBalance(acc.id) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">
+                                            ${formatCurrency(calculateBalance(acc.id))}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                            <button class="edit-account-btn text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors" data-id="${acc.id}">${ICONS.Edit}</button>
+                                            <button class="delete-account-btn text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors" data-id="${acc.id}">${ICONS.Trash2}</button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `}
+            `;
+            document.getElementById('add-account-btn')?.addEventListener('click', () => openFormModal('accounts', 'add'));
+            document.querySelectorAll('.edit-account-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                const id = e.currentTarget.dataset.id;
+                const account = accounts.find(a => a.id === id);
+                if (account) openFormModal('accounts', 'edit', account);
+            }));
+            document.querySelectorAll('.delete-account-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                const id = e.currentTarget.dataset.id;
+                handleDelete('accounts', id);
+            }));
+        };
+
+        const renderTransactions = () => {
+            const { filteredTransactions: displayTransactions } = getFilteredData();
+            const getAccountName = (id) => accounts.find(a => a.id === id)?.name || 'N/A';
+            const getCategoryName = (id) => categories.find(c => c.id === id)?.name || 'N/A';
+
+            mainContent.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-3xl font-semibold">Transações</h1>
+                    <button id="add-transaction-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md flex items-center space-x-2 transition-colors">
+                        ${ICONS.PlusCircle}
+                        <span>Adicionar Transação</span>
+                    </button>
+                </div>
+                ${displayTransactions.length === 0 ? '<p class="text-gray-500 dark:text-gray-400">Nenhuma transação cadastrada.</p>' : `
+                    <div class="bg-white dark:bg-gray-800 shadow-xl rounded-lg overflow-hidden">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Data</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Descrição</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tipo</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Valor</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Conta</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Categoria</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                ${displayTransactions.map(trans => `
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">${formatDate(trans.date)}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${trans.description}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                                trans.type === 'income' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                                                trans.type === 'expense' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                                                'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                                            }">
+                                                ${trans.type === 'income' ? 'Receita' : trans.type === 'expense' ? 'Despesa' : 'Transferência'}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold ${
+                                            trans.type === 'income' ? 'text-green-600 dark:text-green-400' :
+                                            trans.type === 'expense' ? 'text-red-600 dark:text-red-400' :
+                                            'text-yellow-600 dark:text-yellow-400'
+                                        }">
+                                            ${formatCurrency(trans.amount)}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">
+                                            ${trans.type === 'transfer' ? `${getAccountName(trans.fromAccountId)} &rarr; ${getAccountName(trans.toAccountId)}` : getAccountName(trans.accountId)}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 dark:text-gray-300">${trans.categoryId ? getCategoryName(trans.categoryId) : 'N/A'}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                            <button class="edit-transaction-btn text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors" data-id="${trans.id}">${ICONS.Edit}</button>
+                                            <button class="delete-transaction-btn text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors" data-id="${trans.id}">${ICONS.Trash2}</button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `}
+            `;
+            document.getElementById('add-transaction-btn')?.addEventListener('click', () => openFormModal('transactions', 'add'));
+            document.querySelectorAll('.edit-transaction-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                const id = e.currentTarget.dataset.id;
+                const transaction = transactions.find(t => t.id === id);
+                if (transaction) openFormModal('transactions', 'edit', transaction);
+            }));
+            document.querySelectorAll('.delete-transaction-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                const id = e.currentTarget.dataset.id;
+                handleDelete('transactions', id);
+            }));
+        };
+
+        const renderCategories = () => {
+            const { filteredCategories: displayCategories } = getFilteredData();
+            mainContent.innerHTML = `
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="text-3xl font-semibold">Categorias</h1>
+                    <button id="add-category-btn" class="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md flex items-center space-x-2 transition-colors">
+                        ${ICONS.PlusCircle}
+                        <span>Adicionar Categoria</span>
+                    </button>
+                </div>
+                ${displayCategories.length === 0 ? '<p class="text-gray-500 dark:text-gray-400">Nenhuma categoria cadastrada.</p>' : `
+                    <div class="bg-white dark:bg-gray-800 shadow-xl rounded-lg overflow-hidden">
+                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                            <thead class="bg-gray-50 dark:bg-gray-700">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Nome</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Tipo</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Contexto</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+                                ${displayCategories.map(cat => `
+                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">${cat.name}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${cat.type === 'income' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}">
+                                                ${cat.type === 'income' ? 'Receita' : 'Despesa'}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${cat.context === 'personal' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' : 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200'}">
+                                                ${cat.context === 'personal' ? 'Pessoal' : 'Empresarial'}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                                            <button class="edit-category-btn text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 transition-colors" data-id="${cat.id}">${ICONS.Edit}</button>
+                                            <button class="delete-category-btn text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors" data-id="${cat.id}">${ICONS.Trash2}</button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `}
+            `;
+            document.getElementById('add-category-btn')?.addEventListener('click', () => openFormModal('categories', 'add'));
+            document.querySelectorAll('.edit-category-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                const id = e.currentTarget.dataset.id;
+                const category = categories.find(c => c.id === id);
+                if (category) openFormModal('categories', 'edit', category);
+            }));
+            document.querySelectorAll('.delete-category-btn').forEach(btn => btn.addEventListener('click', (e) => {
+                const id = e.currentTarget.dataset.id;
+                handleDelete('categories', id);
+            }));
+        };
+
+        const renderCurrentView = () => {
+            if (!currentUserId) return; 
+            switch (currentView) {
+                case 'overview': renderOverview(); break;
+                case 'accounts': renderAccounts(); break;
+                case 'transactions': renderTransactions(); break;
+                case 'categories': renderCategories(); break;
+                default: renderOverview();
+            }
+        };
+
+        // --- Lógica de Modais ---
+        const openModal = (title, contentHTML, onCancel, onConfirm) => {
+            modalTitle.textContent = title;
+            modalBody.innerHTML = ''; 
+            
+            if (typeof contentHTML === 'string') {
+                modalBody.innerHTML = contentHTML;
+            } else { 
+                modalBody.appendChild(contentHTML);
+            }
+
+            modalGeneric.style.display = 'flex'; 
+            void modalGeneric.offsetWidth;
+            modalGeneric.classList.add('open');
+
+            const oldCloseButton = modalCloseButton;
+            const newCloseButton = oldCloseButton.cloneNode(true);
+            oldCloseButton.parentNode.replaceChild(newCloseButton, oldCloseButton);
+            modalCloseButton = newCloseButton; 
+
+            modalCloseButton.onclick = () => closeModal(onCancel);
+
+            const cancelBtn = modalBody.querySelector('.modal-cancel-btn');
+            if (cancelBtn) {
+                const oldCancelBtn = cancelBtn;
+                const newCancelBtn = oldCancelBtn.cloneNode(true);
+                oldCancelBtn.parentNode.replaceChild(newCancelBtn, oldCancelBtn);
+                newCancelBtn.onclick = () => closeModal(onCancel);
+            }
+            
+            const confirmBtn = modalBody.querySelector('.modal-confirm-btn'); 
+            if (confirmBtn) {
+                const oldConfirmBtn = confirmBtn;
+                const newConfirmBtn = oldConfirmBtn.cloneNode(true);
+                oldConfirmBtn.parentNode.replaceChild(newConfirmBtn, oldConfirmBtn);
+                newConfirmBtn.onclick = () => {
+                    if (onConfirm) onConfirm();
+                };
+            }
+        };
+
+        const closeModal = (cancelCallback) => {
+            modalGeneric.classList.remove('open');
+            setTimeout(() => {
+                modalGeneric.style.display = 'none';
+                modalBody.innerHTML = ''; 
+                currentModal = { type: null, mode: null, data: null, callback: null };
+                if (cancelCallback && typeof cancelCallback === 'function') {
+                    cancelCallback();
+                }
+            }, 200); 
+        };
+
+        const openFormModal = (type, mode, data = null) => {
+            currentModal = { type, mode, data, callback: null };
+            let templateId, title;
+            
+            if (type === 'accounts') { templateId = 'account-form-template'; title = `${mode === 'edit' ? 'Editar' : 'Adicionar'} Conta`; }
+            else if (type === 'categories') { templateId = 'category-form-template'; title = `${mode === 'edit' ? 'Editar' : 'Adicionar'} Categoria`; }
+            else if (type === 'transactions') { templateId = 'transaction-form-template'; title = `${mode === 'edit' ? 'Editar' : 'Adicionar'} Transação`; }
+            else return;
+
+            const template = document.getElementById(templateId);
+            const formClone = template.content.cloneNode(true).querySelector('form');
+
+            if (mode === 'edit' && data) {
+                for (const key in data) {
+                    const input = formClone.elements[key];
+                    if (input) {
+                        if (input.type === 'date' && data[key] instanceof Timestamp) {
+                            input.value = dateToInputFormat(data[key]);
+                        } else {
+                            input.value = data[key];
+                        }
+                    }
+                }
+            } else if (type === 'transactions') { 
+                const dateInput = formClone.elements['date'];
+                if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+            }
+
+            if (type === 'transactions') {
+                const typeSelect = formClone.elements['type'];
+                const accountSelect = formClone.elements['accountId'];
+                const categorySelect = formClone.elements['categoryId'];
+                const fromAccountSelect = formClone.elements['fromAccountId'];
+                const toAccountSelect = formClone.elements['toAccountId'];
+                const accountSection = formClone.querySelector('.transaction-account-section');
+                const categorySection = formClone.querySelector('.transaction-category-section');
+                const transferSection = formClone.querySelector('.transaction-transfer-section');
+
+                [accountSelect, fromAccountSelect, toAccountSelect].forEach(sel => {
+                    if(sel) {
+                        sel.innerHTML = '<option value="">Selecione...</option>'; 
+                        accounts.forEach(acc => sel.add(new Option(`${acc.name} (${acc.type === 'personal' ? 'Pessoal' : 'Empresarial'})`, acc.id)));
+                    }
+                });
+                
+                const updateTransactionFormFields = () => {
+                    const currentTransactionType = typeSelect.value;
+                    if (currentTransactionType === 'transfer') {
+                        accountSection.classList.add('hidden');
+                        categorySection.classList.add('hidden');
+                        transferSection.classList.remove('hidden');
+                        if (data && mode === 'edit') { 
+                           if(fromAccountSelect) fromAccountSelect.value = data.fromAccountId || '';
+                           if(toAccountSelect) toAccountSelect.value = data.toAccountId || '';
+                        }
+                    } else {
+                        accountSection.classList.remove('hidden');
+                        categorySection.classList.remove('hidden');
+                        transferSection.classList.add('hidden');
+                        
+                        if(categorySelect) {
+                            categorySelect.innerHTML = '<option value="">Selecione uma categoria</option>';
+                            const selectedAccount = accounts.find(a => a.id === accountSelect.value);
+                            const accountContext = selectedAccount ? selectedAccount.type : null;
+
+                            categories.filter(cat => cat.type === currentTransactionType && (accountContext ? cat.context === accountContext : true))
+                                .forEach(cat => categorySelect.add(new Option(cat.name, cat.id)));
+                        }
+                        if (data && mode === 'edit') { 
+                            if(accountSelect) accountSelect.value = data.accountId || '';
+                            if(categorySelect) categorySelect.value = data.categoryId || '';
+                        }
+                    }
+                };
+                
+                typeSelect.addEventListener('change', updateTransactionFormFields);
+                if(accountSelect) accountSelect.addEventListener('change', updateTransactionFormFields); 
+                updateTransactionFormFields(); 
+            }
+
+
+            formClone.onsubmit = async (e) => {
+                e.preventDefault();
+                const formData = new FormData(formClone);
+                const itemData = {};
+                formData.forEach((value, key) => itemData[key] = value);
+
+                if (itemData.amount) itemData.amount = parseFloat(itemData.amount);
+                if (itemData.date) itemData.date = getFirebaseTimestamp(itemData.date);
+
+                if (itemData.type === 'transfer') {
+                    if (!itemData.fromAccountId || !itemData.toAccountId) {
+                        showNotification("Contas de origem e destino são obrigatórias para transferências.", "error"); return;
+                    }
+                    if (itemData.fromAccountId === itemData.toAccountId) {
+                        showNotification("Conta de origem e destino não podem ser a mesma.", "error"); return;
+                    }
+                    delete itemData.accountId;
+                    delete itemData.categoryId;
+                } else {
+                     if (!itemData.accountId) {
+                        showNotification("A conta é obrigatória para despesas e receitas.", "error"); return;
+                    }
+                    delete itemData.fromAccountId;
+                    delete itemData.toAccountId;
+                    if (!itemData.categoryId) delete itemData.categoryId; 
+                }
+                
+                if (itemData.amount <= 0 && (itemData.type === 'expense' || itemData.type === 'income' || itemData.type === 'transfer')) {
+                    showNotification("O valor da transação deve ser positivo.", "error");
+                    return;
+                }
+
+
+                await handleSave(type, itemData, data?.id);
+            };
+
+            openModal(title, formClone);
+        };
+        
+        const openConfirmationModal = (message, onConfirmCallback) => {
+            const template = document.getElementById('confirmation-modal-template');
+            const contentClone = template.content.cloneNode(true);
+            contentClone.getElementById('confirmation-message').textContent = message;
+            
+            openModal("Confirmação", contentClone, null, () => {
+                onConfirmCallback();
+                closeModal();
+            });
+        };
+
+        // --- CRUD Operations ---
+        const handleSave = async (type, dataToSave, existingId = null) => {
+            if (!currentUserId) {
+                showNotification("Usuário não autenticado. Operação não permitida.", "error");
+                return;
+            }
+            const collectionPath = getCollectionPath(type);
+            try {
+                if (existingId) {
+                    const docRef = doc(fbDb, collectionPath, existingId);
+                    await updateDoc(docRef, dataToSave);
+                    showNotification(`${type.charAt(0).toUpperCase() + type.slice(1)} atualizada com sucesso!`, 'success');
+                } else {
+                    await addDoc(collection(fbDb, collectionPath), { ...dataToSave, createdAt: Timestamp.now() });
+                    showNotification(`${type.charAt(0).toUpperCase() + type.slice(1)} adicionada com sucesso!`, 'success');
+                }
+                closeModal();
+                renderCurrentView(); 
+            } catch (error) {
+                console.error(`Erro ao salvar ${type}: `, error);
+                showNotification(`Erro ao salvar ${type}: ${error.message}`, 'error');
+            }
+        };
+
+        const handleDelete = async (type, id) => {
+            if (!currentUserId) {
+                showNotification("Usuário não autenticado. Operação não permitida.", "error");
+                return;
+            }
+            
+            openConfirmationModal(`Tem certeza que deseja excluir este item? Esta ação não pode ser desfeita.`, async () => {
+                try {
+                    if (type === 'accounts') {
+                        const hasTransactions = transactions.some(t => t.accountId === id || t.fromAccountId === id || t.toAccountId === id);
+                        if (hasTransactions) {
+                            showNotification('Não é possível excluir a conta. Existem transações associadas a ela.', 'error');
+                            return;
+                        }
+                    }
+                    if (type === 'categories') {
+                        const hasTransactions = transactions.some(t => t.categoryId === id);
+                        if (hasTransactions) {
+                            showNotification('Não é possível excluir a categoria. Existem transações associadas a ela.', 'error');
+                            return;
+                        }
+                    }
+
+                    const collectionPath = getCollectionPath(type);
+                    await deleteDoc(doc(fbDb, collectionPath, id));
+                    showNotification(`${type.charAt(0).toUpperCase() + type.slice(1)} excluída com sucesso!`, 'success');
+                    renderCurrentView(); 
+                } catch (error) {
+                    console.error(`Erro ao excluir ${type}: `, error);
+                    showNotification(`Erro ao excluir ${type}: ${error.message}`, 'error');
+                }
+            });
+        };
+
+
+        // --- Inicialização da Aplicação ---
+        const initializeAppUI = () => {
+            document.getElementById('app-title-auth').textContent = APP_NAME_CONST;
+            document.getElementById('app-title-dashboard').textContent = APP_NAME_CONST;
+            if(currentYearSpan) currentYearSpan.textContent = new Date().getFullYear();
+            if(appIdDisplayAuth) appIdDisplayAuth.textContent = globalAppId; 
+            if(appIdDisplayDashboard) appIdDisplayDashboard.textContent = globalAppId; 
+
+
+            renderSidebar();
+            renderToggleBalancesButton();
+            navigateTo('overview'); 
+            updateFilterContextButtons();
+
+            document.querySelectorAll('.filter-context-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    filterContext = e.target.dataset.context;
+                    updateFilterContextButtons();
+                    renderCurrentView();
+                });
+            });
+            
+            toggleBalancesBtn.addEventListener('click', () => {
+                showBalances = !showBalances;
+                renderToggleBalancesButton();
+                renderCurrentView(); 
+            });
+            
+            modalCloseButton.addEventListener('click', () => closeModal());
+            modalGeneric.addEventListener('click', (event) => {
+                if (event.target === modalGeneric) { 
+                    closeModal();
+                }
+            });
+        };
+
+        onAuthStateChanged(fbAuth, async (user) => {
+            cleanupFirestoreListeners(); 
+            accounts = []; categories = []; transactions = []; 
+
+            if (user) {
+                currentUser = user;
+                currentUserId = user.uid;
+                console.log("Usuário logado:", currentUserId, user.email || (user.isAnonymous ? "Anônimo" : ""));
+
+                userEmailDisplay.textContent = user.email || (user.isAnonymous ? 'Usuário Anônimo' : 'N/A');
+                userEmailDisplay.title = user.email || (user.isAnonymous ? 'Usuário Anônimo' : 'N/A');
+                userIdDisplay.textContent = currentUserId;
+                userIdDisplay.title = currentUserId;
+
+                authScreen.classList.add('hidden');
+                dashboardScreen.classList.remove('hidden');
+                dashboardScreen.classList.add('flex');
+                
+                initializeAppUI(); 
+
+                fetchData('accounts', (data) => accounts = data);
+                fetchData('categories', (data) => categories = data);
+                fetchData('transactions', (data) => transactions = data, () => {
+                    initialLoadingScreen.classList.add('hidden'); 
+                    appContainer.classList.remove('hidden');
+                });
+
+
+            } else { // Nenhum usuário logado com fbAuth (para o projeto configurado)
+                currentUser = null;
+                currentUserId = null;
+                console.log("Nenhum usuário logado para o projeto configurado. Exibindo tela de login.");
+                // Como firebaseConfig é fixo para o projeto do usuário,
+                // não tentaremos usar __initial_auth_token se ele for de um projeto diferente.
+                // Prosseguir diretamente para a tela de login do projeto configurado.
+                showLoginScreen();
+            }
+        });
+        
+        const showLoginScreen = () => {
+            authScreen.classList.remove('hidden');
+            dashboardScreen.classList.add('hidden');
+            dashboardScreen.classList.remove('flex');
+            initialLoadingScreen.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+        };
+        
+        updateFilterContextButtons();
+
+    </script>
+</body>
+</html>
