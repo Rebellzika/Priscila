@@ -524,8 +524,8 @@
             collection, 
             addDoc, 
             doc, 
-            getDoc, // Added getDoc
-            setDoc, // Added setDoc
+            getDoc, 
+            setDoc, 
             updateDoc, 
             deleteDoc, 
             query, 
@@ -589,13 +589,13 @@
         const authError = document.getElementById('auth-error');
         const authToggleText = document.getElementById('auth-toggle-text');
         const authToggleButton = document.getElementById('auth-toggle-button');
-        const registrationPromptEl = document.getElementById('registration-prompt'); // Added
+        const registrationPromptEl = document.getElementById('registration-prompt'); 
         const authSubtitle = document.getElementById('auth-subtitle');
         const mainContent = document.getElementById('main-content');
         const sidebarNav = document.getElementById('sidebar-nav');
         const userEmailDisplay = document.getElementById('user-email-display');
         const userIdDisplay = document.getElementById('user-id-display');
-        const userRoleDisplay = document.getElementById('user-role-display').querySelector('span'); // For role text
+        const userRoleDisplay = document.getElementById('user-role-display').querySelector('span'); 
         const logoutButton = document.getElementById('logout-button');
         const currentYearSpan = document.getElementById('current-year');
         let modalGeneric = document.getElementById('modal-generic');
@@ -630,8 +630,10 @@
             TrendingDown: '<svg aria-hidden="true" class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6"></path></svg>',
             DollarSign: '<svg aria-hidden="true" class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>',
             FileText: '<svg aria-hidden="true" class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>',
-            UserPlus: '<svg aria-hidden="true" class="icon" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 11v5m0 0v5m0-5h5m-5 0h-5"></path></svg>', // Placeholder, might need better one
-            UserMinus: '<svg aria-hidden="true" class="icon" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 11H8"></path></svg>' // Placeholder
+            UserPlus: '<svg aria-hidden="true" class="icon" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 11v5m0 0v5m0-5h5m-5 0h-5"></path></svg>', 
+            UserMinus: '<svg aria-hidden="true" class="icon" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 11H8"></path></svg>',
+            // NOVO ÍCONE KANBAN: Um ícone simples de quadro de tarefas/colunas
+            Kanban: '<svg aria-hidden="true" class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"></path></svg>'
         };
 
         // --- Utility Functions ---
@@ -807,17 +809,16 @@
             try {
                 const docSnap = await getDoc(appSettingsRef);
                 if (docSnap.exists()) {
-                    registrationsEnabled = docSnap.data().registrationsEnabled === true; // Ensure boolean
+                    registrationsEnabled = docSnap.data().registrationsEnabled === true; 
                 } else {
-                    // Default to true if settings don't exist, and create it for admin later
                     registrationsEnabled = true;
                     console.log("App settings not found, defaulting registrations to enabled.");
                 }
             } catch (error) {
                 console.error("Error fetching registration settings:", error);
-                registrationsEnabled = true; // Default to true on error
+                registrationsEnabled = true; 
             }
-            updateRegistrationToggleUI(); // Update UI on auth screen
+            updateRegistrationToggleUI(); 
         };
 
         const updateRegistrationToggleUI = () => {
@@ -856,8 +857,6 @@
         let isLoginMode = true;
 
         const createUserProfile = async (user, roleToAssign) => {
-            // SECURITY NOTE: In a production app, assigning roles should be done via a trusted server environment (e.g., Cloud Functions)
-            // to prevent client-side manipulation. This client-side assignment is for demonstration.
             if (!user || !user.uid) {
                 console.error("Cannot create profile: invalid user object.");
                 return;
@@ -869,7 +868,7 @@
                     email: user.email,
                     role: roleToAssign,
                     createdAt: Timestamp.now()
-                }, { merge: true }); // Merge true to avoid overwriting if doc exists with other fields
+                }, { merge: true }); 
                 console.log(`Profile created/updated for user ${user.uid} with role ${roleToAssign}`);
             } catch (error) {
                 console.error("Error creating user profile:", error);
@@ -877,23 +876,22 @@
         };
         
         const fetchUserProfile = async (userId) => {
-            if (!userId) return 'member'; // Default if no userId
+            if (!userId) return 'member'; 
             const userProfileRef = doc(fbDb, "users", userId);
             try {
                 const docSnap = await getDoc(userProfileRef);
                 if (docSnap.exists() && docSnap.data().role) {
                     return docSnap.data().role;
                 }
-                // If profile or role doesn't exist, and it's not the hardcoded ADMIN_UID, assign 'member'
                 if (userId !== ADMIN_UID) {
                     console.log(`No profile/role for ${userId}, assigning 'member'.`);
-                    await createUserProfile({ uid: userId, email: fbAuth.currentUser?.email || 'N/A' }, 'member'); // Create profile if missing
+                    await createUserProfile({ uid: userId, email: fbAuth.currentUser?.email || 'N/A' }, 'member'); 
                     return 'member';
                 }
-                return 'member'; // Default for non-admin if profile is somehow missing
+                return 'member'; 
             } catch (error) {
                 console.error("Error fetching user profile:", error);
-                return 'member'; // Default on error
+                return 'member'; 
             }
         };
 
@@ -916,7 +914,7 @@
             const passwordErrorEl = document.getElementById('password-error');
             if (emailErrorEl) { emailErrorEl.classList.add('hidden'); emailErrorEl.textContent = '';}
             if (passwordErrorEl) { passwordErrorEl.classList.add('hidden'); passwordErrorEl.textContent = '';}
-            updateAuthScreenVisibility(); // Ensure registration prompt visibility is correct
+            updateAuthScreenVisibility(); 
         };
 
         authToggleButton.addEventListener('click', () => {
@@ -929,8 +927,6 @@
             e.preventDefault();
             if (!validateForm(authForm)) return;
 
-            // For registration, check if it's enabled (unless it's the admin potentially creating their first account)
-            // Substitua "EMAIL_DO_SEU_ADMIN_AQUI" pelo email real do admin se necessário para este fluxo específico.
             if (!isLoginMode && !registrationsEnabled && emailInput.value !== "EMAIL_DO_SEU_ADMIN_AQUI") { 
                  showNotification("Os registros estão temporariamente desabilitados.", "warning");
                  return;
@@ -947,9 +943,7 @@
                     await signInWithEmailAndPassword(fbAuth, email, password);
                     showNotification('Login bem-sucedido!', 'success');
                 } else {
-                    // This is a new registration
                     const userCredential = await createUserWithEmailAndPassword(fbAuth, email, password);
-                    // Assign 'member' role by default. If this UID matches ADMIN_UID, onAuthStateChanged will override to 'admin'.
                     await createUserProfile(userCredential.user, 'member'); 
                     showNotification('Cadastro bem-sucedido! Faça o login.', 'success');
                     isLoginMode = true; 
@@ -1020,7 +1014,10 @@
         const updateSidebarActiveState = () => {
             document.querySelectorAll('.sidebar-item').forEach(item => {
                 item.classList.remove('active');
-                if (item.dataset.view === currentView) item.classList.add('active');
+                // Para links externos, não há estado 'active' pois eles não mudam a 'currentView' interna
+                if (item.dataset.view === currentView && !item.dataset.type) {
+                     item.classList.add('active');
+                }
             });
         };
         
@@ -1037,15 +1034,30 @@
                 { view: 'transactions', label: 'Transações', icon: ICONS.List },
                 { view: 'categories', label: 'Categorias', icon: ICONS.Briefcase },
                 { view: 'meiReport', label: 'Relatório MEI', icon: ICONS.FileText }, 
+                // NOVO ITEM KANBAN
+                { type: 'externalLink', href: 'https://rebellzika.github.io/Kanbanpri/', label: 'Kanban', icon: ICONS.Kanban }
             ];
-            sidebarNav.innerHTML = navItems.map(item => `
-                <button data-view="${item.view}" class="sidebar-item" aria-label="${item.label}">
-                    ${item.icon}
-                    <span>${item.label}</span>
-                </button>
-            `).join('');
-            document.querySelectorAll('.sidebar-item').forEach(button => {
-                button.addEventListener('click', () => navigateTo(button.dataset.view));
+            sidebarNav.innerHTML = navItems.map(item => {
+                if (item.type === 'externalLink') {
+                    return `
+                        <a href="${item.href}" target="_blank" rel="noopener noreferrer" class="sidebar-item" aria-label="${item.label}">
+                            ${item.icon}
+                            <span>${item.label}</span>
+                        </a>`;
+                }
+                return `
+                    <button data-view="${item.view}" class="sidebar-item" aria-label="${item.label}">
+                        ${item.icon}
+                        <span>${item.label}</span>
+                    </button>`;
+            }).join('');
+
+            document.querySelectorAll('.sidebar-item').forEach(buttonOrLink => {
+                // Apenas adicione event listener para botões de navegação interna
+                if (buttonOrLink.tagName === 'BUTTON' && buttonOrLink.dataset.view) {
+                    buttonOrLink.addEventListener('click', () => navigateTo(buttonOrLink.dataset.view));
+                }
+                // Links <a> já funcionarão nativamente para abrir em nova aba
             });
             updateSidebarActiveState();
         };
@@ -1468,7 +1480,7 @@
                  authScreenEl.classList.remove('hidden');
                  dashboardScreenEl.classList.add('hidden');
                  dashboardScreenEl.classList.remove('flex'); 
-                 updateAuthScreenVisibility(); // Ensure registration prompt is updated based on fetched settings
+                 updateAuthScreenVisibility(); 
                  return;
             }
             if (currentUserId && currentView !== 'auth') {
@@ -1727,29 +1739,19 @@
             applyDarkModePreference(); 
             updateFilterContextButtons();
             
-            // Admin controls visibility
             adminControlsSection.classList.toggle('hidden', userRole !== 'admin');
-            updateRegistrationToggleUI(); // Initial state for admin button
+            updateRegistrationToggleUI(); 
 
-            // ***** INÍCIO DA CORREÇÃO *****
             document.querySelectorAll('.filter-context-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     const newContext = e.target.dataset.context;
-                    // Se o contexto está a mudar OU se não estamos atualmente no ecrã 'overview',
-                    // então atualize o contexto e navegue para o ecrã 'overview'.
                     if (filterContext !== newContext || currentView !== 'overview') {
-                        filterContext = newContext;         // Define o contexto de filtro global
-                        updateFilterContextButtons();       // Atualiza o estado visual dos botões de contexto
-                        navigateTo('overview');             // Navega para a página de visão geral.
-                                                            // navigateTo definirá currentView = 'overview',
-                                                            // redefinirá paginação/pesquisa e, em seguida, chamará renderCurrentView(),
-                                                            // que executará renderOverview() usando o novo filterContext.
+                        filterContext = newContext;         
+                        updateFilterContextButtons();       
+                        navigateTo('overview');             
                     }
-                    // Se filterContext já for o newContext E currentView for 'overview',
-                    // então nenhuma ação é necessária, pois a visualização já está corretamente exibida.
                 });
             });
-            // ***** FIM DA CORREÇÃO *****
 
             toggleBalancesBtn.addEventListener('click', () => { showBalances = !showBalances; renderToggleBalancesButton(); renderCurrentView(); });
             darkModeToggleBtn.addEventListener('click', () => { 
@@ -1775,7 +1777,7 @@
         };
 
         onAuthStateChanged(fbAuth, async (user) => {
-            await fetchRegistrationSettings(); // Fetch settings regardless of user state for auth screen
+            await fetchRegistrationSettings(); 
             console.log("onAuthStateChanged triggered. User:", user ? user.uid : "None", "Reg Enabled:", registrationsEnabled); 
             
             cleanupFirestoreListeners(); 
@@ -1793,17 +1795,15 @@
             if (user) { 
                 currentUser = user; currentUserId = user.uid; 
                 
-                // Determine user role
                 if (user.uid === ADMIN_UID) {
                     userRole = 'admin';
-                    // Ensure admin profile has 'admin' role, create/update if necessary
                     const adminProfileRef = doc(fbDb, "users", ADMIN_UID);
                     const adminProfileSnap = await getDoc(adminProfileRef);
                     if (!adminProfileSnap.exists() || adminProfileSnap.data().role !== 'admin') {
                         await createUserProfile(user, 'admin');
                     }
                 } else {
-                    userRole = await fetchUserProfile(user.uid); // Fetches or creates 'member' profile
+                    userRole = await fetchUserProfile(user.uid); 
                 }
                 console.log("User logged in:", currentUserId, user.email, "Role:", userRole);
 
@@ -1821,13 +1821,13 @@
                     if (currentView !== 'auth') renderCurrentView();
                 });
             } else { 
-                currentUser = null; currentUserId = null; userRole = 'member'; // Reset role
+                currentUser = null; currentUserId = null; userRole = 'member'; 
                 console.log("No user logged in. Displaying auth screen.");
                 dashboardScreenEl.classList.add('hidden'); 
                 dashboardScreenEl.classList.remove('flex'); 
                 authScreenEl.classList.remove('hidden'); 
-                adminControlsSection.classList.add('hidden'); // Hide admin controls if no user
-                updateAuthScreenVisibility(); // Update based on fetched settings
+                adminControlsSection.classList.add('hidden'); 
+                updateAuthScreenVisibility(); 
             }
         });
         
